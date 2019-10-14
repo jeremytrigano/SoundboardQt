@@ -1,2 +1,3 @@
 # SoundboardQt
-SoundBoard réalisée sous QT
+## Collaborateurs
+Jérémy Trigano

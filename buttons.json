@@ -1,0 +1,18 @@
+{
+    "buttons": [{
+            "name": "button1",
+            "file": "sound1.mp3",
+            "position": 2
+        },
+        {
+            "name": "button2",
+            "file": "sound2.mp3",
+            "position": 3
+        },
+        {
+            "name": "button3",
+            "file": "sound3.mp3",
+            "position": 5
+        }
+    ]
+}
