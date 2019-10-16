@@ -25,10 +25,6 @@ speed-measure-plugin*.json
 
 # IDE - VSCode
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 .history/*
 
 # misc
@@ -43,6 +39,7 @@ testem.log
 spec.txt
 /venv/
 *.mp3
+.gitignore
 
 # System Files
 .DS_Store
