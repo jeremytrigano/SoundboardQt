@@ -4,10 +4,10 @@
 """
     Application de SoundBoard avec interface Qt
     ======================
- 
+
     Exécuter pour commencer l'utilisation de la SoundBoard.
- 
- 
+
+
 """
 
 import json
@@ -16,9 +16,15 @@ from PySide2.QtWidgets import (
 import sys
 import operator
 from math import sqrt, ceil
+import vlc
+
+soundRep = "./sons/"
+instance = vlc.Instance()
+p = instance.media_player_new()
+
 
 # import des informations boutons contenues dans le json
-with open('buttons.json') as json_file:
+with open('buttons.json', encoding='utf-8') as json_file:
     data_buttons = json.load(json_file)
 
 # stockage de la position la plus élevée pour le cadrage
@@ -37,6 +43,7 @@ class SoundBoard(QDialog):
         # peu importe la hauteur et largeur la fenêtre s'adaptera au contenu
         self.width = 1
         self.height = 1
+        self.currFileName = ""
         self.initUI()
 
     def initUI(self):
@@ -47,6 +54,11 @@ class SoundBoard(QDialog):
 
         windowLayout = QVBoxLayout()
         windowLayout.addWidget(self.horizontalGroupBox)
+
+        pbStop = QPushButton('GROS BOUTON STOP')
+        windowLayout.addWidget(pbStop)
+        pbStop.clicked.connect(self.stop)
+
         self.setLayout(windowLayout)
 
         self.show()
@@ -61,14 +73,35 @@ class SoundBoard(QDialog):
                 if (ligne*3)+(colonne+1) in positions:
                     for b in data_buttons['buttons']:
                         if b['position'] == (ligne*3)+(colonne+1):
-                            layout.addWidget(QPushButton(
-                                b['name']), ligne, colonne)
+                            pb = QPushButton(b['name'])
+                            pb.setProperty('pbFile', b['file'])
+                            layout.addWidget(pb, ligne, colonne)
+                            pb.clicked.connect(self.play)
+
                 else:
                     layout.addWidget(QPushButton('Nouveau'), ligne, colonne)
                 colonne += 1
             ligne += 1
-
         self.horizontalGroupBox.setLayout(layout)
+
+    def play(self):
+        pb = self.sender()
+        pbFile = pb.property('pbFile')
+        if (p.get_state() == vlc.State.Playing):
+            p.stop()
+            media = instance.media_new(soundRep + pbFile)
+            if (self.currFileName != pbFile):
+                p.set_media(media)
+                p.play()
+                self.currFileName = pbFile
+        else:
+            media = instance.media_new(soundRep + pbFile)
+            p.set_media(media)
+            p.play()
+            self.currFileName = pbFile
+
+    def stop(self):
+        p.stop()
 
 
 if __name__ == "__main__":
