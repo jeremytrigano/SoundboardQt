@@ -1,18 +1,18 @@
 {
     "buttons": [{
             "name": "button1",
-            "file": "Allo Mc Fly.mp3",
+            "file": "fleur.mp3",
             "position": 2
         },
         {
             "name": "button2",
-            "file": "Ah ça fait rien.mp3",
+            "file": "je-suis-une-fleur.mp3",
             "position": 3
         },
         {
             "name": "button3",
             "file": "bosch.mp3",
-            "position": 5
+            "position": 7
         }
     ]
 }

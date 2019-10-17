@@ -11,8 +11,12 @@
 """
 
 import json
+from PySide2.QtCore import (QRect, QSize)
 from PySide2.QtWidgets import (
-    QApplication, QDialog, QVBoxLayout, QGroupBox, QGridLayout, QPushButton)
+    QApplication, QDialog, QVBoxLayout, QHBoxLayout, QGroupBox,
+    QGridLayout, QPushButton, QToolButton, QTableWidget,
+    QSpacerItem, QSizePolicy)
+from PySide2.QtGui import (QIcon, QPixmap)
 import sys
 import operator
 from math import sqrt, ceil
@@ -23,49 +27,97 @@ instance = vlc.Instance()
 p = instance.media_player_new()
 
 
-# import des informations boutons contenues dans le json
-with open('buttons.json', encoding='utf-8') as json_file:
-    data_buttons = json.load(json_file)
-
-# stockage de la position la plus élevée pour le cadrage
-positions = [p['position'] for p in data_buttons['buttons']]
-max_pos = max(positions)
-
-
 class SoundBoard(QDialog):
     def __init__(self):
         super(SoundBoard, self).__init__()
         self.title = '=== SoundBoard ==='
         self.left = 50
         self.top = 50
-        # calcul du nombre de boutons par hauteur et largeur
-        self.btnPWH = ceil(sqrt(max_pos))
         # peu importe la hauteur et largeur la fenêtre s'adaptera au contenu
-        self.width = 1
-        self.height = 1
+        self.width = 500
+        self.height = 500
         self.currFileName = ""
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-
-        self.createGridLayout()
-
-        windowLayout = QVBoxLayout()
-        windowLayout.addWidget(self.horizontalGroupBox)
-
-        pbStop = QPushButton('GROS BOUTON STOP')
-        windowLayout.addWidget(pbStop)
-        pbStop.clicked.connect(self.stop)
-
-        self.setLayout(windowLayout)
-
+        self.windowLayout = QHBoxLayout()
+        self.tableWidget = QTableWidget()
+        self.tableWidget.horizontalHeader().hide()
+        self.tableWidget.verticalHeader().hide()
+        self.initMenu()
+        self.initButtons()
+        self.windowLayout.setStretch(1, 0)
+        self.setLayout(self.windowLayout)
         self.show()
 
-    def createGridLayout(self):
-        self.horizontalGroupBox = QGroupBox("")
-        layout = QGridLayout()
+    def initMenu(self):
+        layout = QVBoxLayout()
+        hlayout = QHBoxLayout()
+
+        self.tbPlus = QToolButton()
+        self.tbPlus.setGeometry(QRect(0, 0, 32, 32))
+        iPlus = QIcon()
+        iPlus.addPixmap(QPixmap(
+            "./icons/plus.png"), QIcon.Normal, QIcon.Off)
+        self.tbPlus.setIcon(iPlus)
+        self.tbPlus.setObjectName("tbPlus")
+
+        hlayout.addWidget(self.tbPlus)
+        self.tbPlus.clicked.connect(self.refreshUI)
+
+        self.tbMinus = QToolButton()
+        self.tbMinus.setGeometry(QRect(0, 0, 32, 32))
+        iMinus = QIcon()
+        iMinus.addPixmap(QPixmap(
+            "./icons/minus.png"), QIcon.Normal, QIcon.Off)
+        self.tbMinus.setIcon(iMinus)
+        self.tbMinus.setObjectName("tbMinus")
+
+        hlayout.addWidget(self.tbMinus)
+        self.tbMinus.clicked.connect(self.delete)
+
+        self.tbEdit = QToolButton()
+        self.tbEdit.setGeometry(QRect(0, 0, 32, 32))
+        iEdit = QIcon()
+        iEdit.addPixmap(QPixmap(
+            "./icons/edit.png"), QIcon.Normal, QIcon.Off)
+        self.tbEdit.setIcon(iEdit)
+        self.tbEdit.setObjectName("tbEdit")
+
+        hlayout.addWidget(self.tbEdit)
+        self.tbEdit.clicked.connect(self.edit)
+
+        layout.addLayout(hlayout)
+
+        self.pbStop = QPushButton('GROS BOUTON STOP')
+        self.pbStop.setMinimumSize(QSize(100, 100))
+        self.pbStop.setGeometry(QRect(0, 0, 100, 100))
+        layout.addWidget(self.pbStop)
+        self.pbStop.clicked.connect(self.stop)
+
+        spacerMenu = QSpacerItem(
+            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        layout.addItem(spacerMenu)
+
+        self.windowLayout.addLayout(layout)
+
+    def initButtons(self):
+        self.tableWidget.clear()
+        # import des informations boutons contenues dans le json
+        with open('buttons.json', encoding='utf-8') as json_file:
+            data_buttons = json.load(json_file)
+
+        # stockage de la position la plus élevée pour le cadrage
+        positions = [p['position'] for p in data_buttons['buttons']]
+        max_pos = max(positions)
+
+        # calcul du nombre de boutons par hauteur et largeur
+        self.btnPWH = ceil(sqrt(max_pos))
+        self.tableWidget.setColumnCount(self.btnPWH)
+        self.tableWidget.setRowCount(self.btnPWH)
+        self.tableWidget.setGeometry(QRect(0, 0, 400, 400))
 
         # positionnement des boutons en fonction des positions du json
         for ligne in range(self.btnPWH):
@@ -75,14 +127,23 @@ class SoundBoard(QDialog):
                         if b['position'] == (ligne*3)+(colonne+1):
                             pb = QPushButton(b['name'])
                             pb.setProperty('pbFile', b['file'])
-                            layout.addWidget(pb, ligne, colonne)
+                            self.tableWidget.setCellWidget(
+                                ligne, colonne, pb)
                             pb.clicked.connect(self.play)
-
                 else:
-                    layout.addWidget(QPushButton('Nouveau'), ligne, colonne)
+                    self.tableWidget.setCellWidget(
+                        ligne, colonne, QPushButton('Nouveau'))
                 colonne += 1
             ligne += 1
-        self.horizontalGroupBox.setLayout(layout)
+
+        buttonsLayout = QVBoxLayout()
+        buttonsLayout.setStretch(0, 1)
+        buttonsLayout.addWidget(self.tableWidget)
+
+        self.windowLayout.addLayout(buttonsLayout)
+
+        self.setGeometry(self.left, self.top, 140 +
+                         self.btnPWH*100, 140+self.btnPWH*20)
 
     def play(self):
         pb = self.sender()
@@ -102,6 +163,18 @@ class SoundBoard(QDialog):
 
     def stop(self):
         p.stop()
+
+    def add(self):
+        p.stop()
+
+    def delete(self):
+        p.stop()
+
+    def edit(self):
+        p.stop()
+
+    def refreshUI(self):
+        self.initButtons()
 
 
 if __name__ == "__main__":
