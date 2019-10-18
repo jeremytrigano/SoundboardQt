@@ -13,9 +13,9 @@
 import json
 from PySide2.QtCore import (QRect, QSize)
 from PySide2.QtWidgets import (
-    QApplication, QDialog, QVBoxLayout, QHBoxLayout, QGroupBox,
-    QGridLayout, QPushButton, QToolButton, QTableWidget,
-    QSpacerItem, QSizePolicy)
+    QApplication, QDialog, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel,
+    QGridLayout, QPushButton, QToolButton, QTableWidget, QLineEdit,
+    QSpacerItem, QSizePolicy, QHeaderView)
 from PySide2.QtGui import (QIcon, QPixmap)
 import sys
 import operator
@@ -31,9 +31,10 @@ class SoundBoard(QDialog):
     def __init__(self):
         super(SoundBoard, self).__init__()
         self.title = '=== SoundBoard ==='
+        # positionnement de la fenêtre à l'ouverture
         self.left = 50
         self.top = 50
-        # peu importe la hauteur et largeur la fenêtre s'adaptera au contenu
+        # initialisation de la largeur et hauteur par défaut
         self.width = 500
         self.height = 500
         self.currFileName = ""
@@ -56,6 +57,7 @@ class SoundBoard(QDialog):
         layout = QVBoxLayout()
         hlayout = QHBoxLayout()
 
+        # bouton ajout
         self.tbPlus = QToolButton()
         self.tbPlus.setGeometry(QRect(0, 0, 32, 32))
         iPlus = QIcon()
@@ -67,6 +69,7 @@ class SoundBoard(QDialog):
         hlayout.addWidget(self.tbPlus)
         self.tbPlus.clicked.connect(self.refreshUI)
 
+        # bouton suppression
         self.tbMinus = QToolButton()
         self.tbMinus.setGeometry(QRect(0, 0, 32, 32))
         iMinus = QIcon()
@@ -78,6 +81,7 @@ class SoundBoard(QDialog):
         hlayout.addWidget(self.tbMinus)
         self.tbMinus.clicked.connect(self.delete)
 
+        # bouton édition
         self.tbEdit = QToolButton()
         self.tbEdit.setGeometry(QRect(0, 0, 32, 32))
         iEdit = QIcon()
@@ -89,9 +93,22 @@ class SoundBoard(QDialog):
         hlayout.addWidget(self.tbEdit)
         self.tbEdit.clicked.connect(self.edit)
 
+        # bouton paramètres
+        self.tbParam = QToolButton()
+        self.tbParam.setGeometry(QRect(0, 0, 32, 32))
+        iParam = QIcon()
+        iParam.addPixmap(QPixmap(
+            "./icons/cog.png"), QIcon.Normal, QIcon.Off)
+        self.tbParam.setIcon(iParam)
+        self.tbParam.setObjectName("tbParam")
+
+        hlayout.addWidget(self.tbParam)
+        self.tbParam.clicked.connect(self.settings)
+
         layout.addLayout(hlayout)
 
-        self.pbStop = QPushButton('GROS BOUTON STOP')
+        self.pbStop = QPushButton("Don't STOP\n\nthe\n\nSoundBoard")
+        self.pbStop.setStyleSheet("font-weight: bold;")
         self.pbStop.setMinimumSize(QSize(100, 100))
         self.pbStop.setGeometry(QRect(0, 0, 100, 100))
         layout.addWidget(self.pbStop)
@@ -105,28 +122,37 @@ class SoundBoard(QDialog):
 
     def initButtons(self):
         self.tableWidget.clear()
+
+        self.tableWidget.clearSpans()
         # import des informations boutons contenues dans le json
         with open('buttons.json', encoding='utf-8') as json_file:
-            data_buttons = json.load(json_file)
+            self.data_buttons = json.load(json_file)
 
         # stockage de la position la plus élevée pour le cadrage
-        positions = [p['position'] for p in data_buttons['buttons']]
-        max_pos = max(positions)
+        positions = [p['position'] for p in self.data_buttons['buttons']]
+        self.max_pos = max(positions)
 
         # calcul du nombre de boutons par hauteur et largeur
-        self.btnPWH = ceil(sqrt(max_pos))
-        self.tableWidget.setColumnCount(self.btnPWH)
-        self.tableWidget.setRowCount(self.btnPWH)
-        self.tableWidget.setGeometry(QRect(0, 0, 400, 400))
+        self.BtnH = self.data_buttons['buttons_grid']['height']
+        self.BtnW = self.data_buttons['buttons_grid']['width']
+        self.tableWidget.setColumnCount(self.BtnW)
+        self.tableWidget.setRowCount(self.BtnH)
 
         # positionnement des boutons en fonction des positions du json
-        for ligne in range(self.btnPWH):
-            for colonne in range(self.btnPWH):
-                if (ligne*3)+(colonne+1) in positions:
-                    for b in data_buttons['buttons']:
-                        if b['position'] == (ligne*3)+(colonne+1):
+        for ligne in range(self.BtnH):
+            for colonne in range(self.BtnW):
+                if (ligne*self.BtnW)+(colonne+1) in positions:
+                    for b in self.data_buttons['buttons']:
+                        if b['position'] == (ligne*self.BtnW)+(colonne+1):
                             pb = QPushButton(b['name'])
                             pb.setProperty('pbFile', b['file'])
+                            # si fond clair, font noire, si sombre, font blanche
+                            if (b['r']*0.299 + b['g']*0.587 + b['b']*0.114) > 186:
+                                pb.setStyleSheet(
+                                    f"background-color: rgb({b['r']},{b['g']},{b['b']}); color: #000000;")
+                            else:
+                                pb.setStyleSheet(
+                                    f"background-color: rgb({b['r']},{b['g']},{b['b']}); color: #ffffff;")
                             self.tableWidget.setCellWidget(
                                 ligne, colonne, pb)
                             pb.clicked.connect(self.play)
@@ -142,8 +168,9 @@ class SoundBoard(QDialog):
 
         self.windowLayout.addLayout(buttonsLayout)
 
-        self.setGeometry(self.left, self.top, 140 +
-                         self.btnPWH*100, 140+self.btnPWH*20)
+        self.setGeometry(self.left, self.top,
+                         140 + self.BtnW*100,
+                         175 if self.BtnH*31 < 175 else 25 + self.BtnH*30)
 
     def play(self):
         pb = self.sender()
@@ -172,6 +199,68 @@ class SoundBoard(QDialog):
 
     def edit(self):
         p.stop()
+
+    def settings(self):
+        self.tableWidget.clear()
+
+        col = 2
+        row = 3
+
+        self.tableWidget.setColumnCount(2)
+        self.tableWidget.setRowCount(4)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+
+        # bouton validation
+        pb = QPushButton('Valider')
+        self.tableWidget.setCellWidget(3, 0, pb)
+        pb.clicked.connect(self.saveSettings)
+
+        # bouton annulation
+        pb = QPushButton('Annuler')
+        self.tableWidget.setCellWidget(3, 1, pb)
+        pb.clicked.connect(self.refreshUI)
+
+        # parameters
+        self.tableWidget.setSpan(0, 0, 1, 2)
+        self.lAlert = QLabel("La modification de ces valeurs entrainera la "
+                             "modification de position des boutons")
+        self.lAlert.setStyleSheet("font-weight: bold;")
+        self.tableWidget.setCellWidget(
+            0, 0, self.lAlert)
+        self.tableWidget.setCellWidget(
+            1, 0, QLabel('Nombre de boutons en Hauteur'))
+        self.leH = QLineEdit(str(self.data_buttons['buttons_grid']['height']))
+        self.tableWidget.setCellWidget(
+            1, 1, self.leH)
+        self.tableWidget.setCellWidget(
+            2, 0, QLabel('Nombre de boutons en Largeur'))
+        self.leW = QLineEdit(str(self.data_buttons['buttons_grid']['width']))
+        self.tableWidget.setCellWidget(
+            2, 1, self.leW)
+
+        settingsLayout = QVBoxLayout()
+        settingsLayout.setStretch(0, 1)
+        settingsLayout.addWidget(self.tableWidget)
+
+        self.windowLayout.addLayout(settingsLayout)
+
+        self.setGeometry(self.left, self.top, 600, 300)
+
+    def saveSettings(self):
+        h = int(self.leH.text())
+        w = int(self.leW.text())
+        if h*w < self.max_pos:
+            self.lAlert.setText(
+                f"Le bouton à la position {str(self.max_pos)} "
+                f"est en dehors de la grille {h} x {w}")
+            self.lAlert.setStyleSheet(
+                "color: rgb(255,0,0); font-weight: bold;")
+        else:
+            self.data_buttons['buttons_grid']['height'] = int(self.leH.text())
+            self.data_buttons['buttons_grid']['width'] = int(self.leW.text())
+            with open('buttons.json', 'w', encoding='utf-8') as outfile:
+                json.dump(self.data_buttons, outfile, indent=4)
+            self.initButtons()
 
     def refreshUI(self):
         self.initButtons()
