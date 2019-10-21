@@ -1,44 +1,44 @@
 {
     "buttons": [
         {
+            "name": "top",
+            "file": "imotep.mp3",
+            "position": 1,
+            "r": 0,
+            "g": 0,
+            "b": 0
+        },
+        {
+            "name": "ajout",
+            "file": "troupa.mp3",
+            "position": 2,
+            "r": 159,
+            "g": 255,
+            "b": 117
+        },
+        {
+            "name": "button7",
+            "file": "tada.wav",
+            "position": 5,
+            "r": 143,
+            "g": 13,
+            "b": 24
+        },
+        {
+            "name": "pos9",
+            "file": "tanasso.mp3",
+            "position": 9,
+            "r": 14,
+            "g": 38,
+            "b": 255
+        },
+        {
             "name": "button1",
             "file": "tada.wav",
             "position": 16,
             "r": 66,
             "g": 135,
             "b": 245
-        },
-        {
-            "name": "button2",
-            "file": "tada.wav",
-            "position": 30,
-            "r": 255,
-            "g": 255,
-            "b": 255
-        },
-        {
-            "name": "button3",
-            "file": "tada.wav",
-            "position": 50,
-            "r": 0,
-            "g": 0,
-            "b": 0
-        },
-        {
-            "name": "button4",
-            "file": "tada.wav",
-            "position": 46,
-            "r": 88,
-            "g": 26,
-            "b": 150
-        },
-        {
-            "name": "button5",
-            "file": "tada.wav",
-            "position": 42,
-            "r": 163,
-            "g": 240,
-            "b": 163
         },
         {
             "name": "button6",
@@ -49,12 +49,44 @@
             "b": 0
         },
         {
-            "name": "button7",
+            "name": "button2",
             "file": "tada.wav",
-            "position": 5,
-            "r": 143,
-            "g": 13,
-            "b": 24
+            "position": 30,
+            "r": 255,
+            "g": 255,
+            "b": 255
+        },
+        {
+            "name": "button5",
+            "file": "tada.wav",
+            "position": 42,
+            "r": 163,
+            "g": 240,
+            "b": 163
+        },
+        {
+            "name": "OOOOOOOOOOA",
+            "file": "tada.wav",
+            "position": 46,
+            "r": 88,
+            "g": 26,
+            "b": 150
+        },
+        {
+            "name": "button3",
+            "file": "tada.wav",
+            "position": 50,
+            "r": 0,
+            "g": 0,
+            "b": 0
+        },
+        {
+            "name": "truc",
+            "file": "sirop.mp3",
+            "position": 34,
+            "r": 255,
+            "g": 151,
+            "b": 110
         }
     ],
     "buttons_grid": {
