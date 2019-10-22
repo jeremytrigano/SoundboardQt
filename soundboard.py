@@ -17,7 +17,7 @@ from PySide2.QtWidgets import (
     QGridLayout, QPushButton, QToolButton, QTableWidget, QLineEdit,
     QSpacerItem, QSizePolicy, QHeaderView, QTableWidgetItem, QFileDialog,
     QWidget, QColorDialog)
-from PySide2.QtGui import (QIcon, QPixmap)
+from PySide2.QtGui import (QIcon, QPixmap, QColor)
 import sys
 import operator
 from math import sqrt, ceil
@@ -39,6 +39,7 @@ class SoundBoard(QDialog):
         self.width = 500
         self.height = 500
         self.currFileName = ""
+        self.pbPosToModify = -1
         self.initUI()
 
     def initUI(self):
@@ -48,12 +49,30 @@ class SoundBoard(QDialog):
         self.tableWidget = QTableWidget()
         self.tableWidget.horizontalHeader().hide()
         self.tableWidget.verticalHeader().hide()
+        self.initIcons()
         self.initMenu()
         self.initColorPicker()
         self.initButtons()
         self.windowLayout.setStretch(1, 0)
         self.setLayout(self.windowLayout)
         self.show()
+
+    def initIcons(self):
+        self.iEdit = QIcon()
+        self.iEdit.addPixmap(QPixmap(
+            "./icons/edit.png"), QIcon.Normal, QIcon.Off)
+
+        self.iPlus = QIcon()
+        self.iPlus.addPixmap(QPixmap(
+            "./icons/plus.png"), QIcon.Normal, QIcon.Off)
+
+        self.iMinus = QIcon()
+        self.iMinus.addPixmap(QPixmap(
+            "./icons/minus.png"), QIcon.Normal, QIcon.Off)
+
+        self.iParam = QIcon()
+        self.iParam.addPixmap(QPixmap(
+            "./icons/cog.png"), QIcon.Normal, QIcon.Off)
 
     def initMenu(self):
         layout = QVBoxLayout()
@@ -62,10 +81,7 @@ class SoundBoard(QDialog):
         # bouton ajout
         self.tbPlus = QToolButton()
         self.tbPlus.setGeometry(QRect(0, 0, 32, 32))
-        iPlus = QIcon()
-        iPlus.addPixmap(QPixmap(
-            "./icons/plus.png"), QIcon.Normal, QIcon.Off)
-        self.tbPlus.setIcon(iPlus)
+        self.tbPlus.setIcon(self.iPlus)
         self.tbPlus.setObjectName("tbPlus")
 
         hlayout.addWidget(self.tbPlus)
@@ -74,10 +90,7 @@ class SoundBoard(QDialog):
         # bouton suppression
         self.tbMinus = QToolButton()
         self.tbMinus.setGeometry(QRect(0, 0, 32, 32))
-        iMinus = QIcon()
-        iMinus.addPixmap(QPixmap(
-            "./icons/minus.png"), QIcon.Normal, QIcon.Off)
-        self.tbMinus.setIcon(iMinus)
+        self.tbMinus.setIcon(self.iMinus)
         self.tbMinus.setObjectName("tbMinus")
 
         hlayout.addWidget(self.tbMinus)
@@ -86,22 +99,16 @@ class SoundBoard(QDialog):
         # bouton édition
         self.tbEdit = QToolButton()
         self.tbEdit.setGeometry(QRect(0, 0, 32, 32))
-        iEdit = QIcon()
-        iEdit.addPixmap(QPixmap(
-            "./icons/edit.png"), QIcon.Normal, QIcon.Off)
-        self.tbEdit.setIcon(iEdit)
+        self.tbEdit.setIcon(self.iEdit)
         self.tbEdit.setObjectName("tbEdit")
 
         hlayout.addWidget(self.tbEdit)
-        self.tbEdit.clicked.connect(self.edit)
+        self.tbEdit.clicked.connect(self.editBtn)
 
         # bouton paramètres
         self.tbParam = QToolButton()
         self.tbParam.setGeometry(QRect(0, 0, 32, 32))
-        iParam = QIcon()
-        iParam.addPixmap(QPixmap(
-            "./icons/cog.png"), QIcon.Normal, QIcon.Off)
-        self.tbParam.setIcon(iParam)
+        self.tbParam.setIcon(self.iParam)
         self.tbParam.setObjectName("tbParam")
 
         hlayout.addWidget(self.tbParam)
@@ -122,9 +129,10 @@ class SoundBoard(QDialog):
 
         self.windowLayout.addLayout(layout)
 
-    def initButtons(self):
+    def startInitButtons(self):
         self.tableWidget.clear()
         self.tableWidget.clearSpans()
+        self.tableWidget.setColumnWidth(0, 100)
         self.tableWidget.setColumnWidth(2, 100)
         self.cdColorPicker.setVisible(False)
 
@@ -140,8 +148,25 @@ class SoundBoard(QDialog):
         # calcul du nombre de boutons par hauteur et largeur
         self.BtnH = self.data_buttons['buttons_grid']['height']
         self.BtnW = self.data_buttons['buttons_grid']['width']
+        self.setGeometry(self.left, self.top,
+                         140 + self.BtnW*100,
+                         175 if self.BtnH*31 < 175 else 25 + self.BtnH*30)
         self.tableWidget.setColumnCount(self.BtnW)
         self.tableWidget.setRowCount(self.BtnH)
+
+    def endInitButtons(self):
+        buttonsLayout = QVBoxLayout()
+        buttonsLayout.setStretch(0, 1)
+        buttonsLayout.addWidget(self.tableWidget)
+
+        self.windowLayout.addLayout(buttonsLayout)
+
+        self.setGeometry(self.left, self.top,
+                         140 + self.BtnW*100,
+                         175 if self.BtnH*31 < 175 else 25 + self.BtnH*30)
+
+    def initButtons(self):
+        self.startInitButtons()
 
         # positionnement des boutons en fonction des positions du json
         for ligne in range(self.BtnH):
@@ -150,7 +175,7 @@ class SoundBoard(QDialog):
                     for b in self.data_buttons['buttons']:
                         if b['position'] == (ligne*self.BtnW)+(colonne+1):
                             pb = QPushButton(b['name'][:9])
-                            pb.setProperty('pbFile', b['file'])
+                            pb.setProperty('pbPos', b['position'])
                             # si fond clair, font noire, si sombre, font blanche
                             if (b['r']*0.299 + b['g']*0.587 + b['b']*0.114) > 186:
                                 pb.setStyleSheet(
@@ -162,20 +187,16 @@ class SoundBoard(QDialog):
                                 ligne, colonne, pb)
                             pb.clicked.connect(self.play)
                 else:
+                    pb = QPushButton('Nouveau')
+                    calcPos = self.BtnW*ligne + colonne + 1
+                    pb.setProperty('pbPos', f"nouveau,{calcPos}")
+                    pb.clicked.connect(self.add)
                     self.tableWidget.setCellWidget(
-                        ligne, colonne, QPushButton('Nouveau'))
+                        ligne, colonne, pb)
                 colonne += 1
             ligne += 1
 
-        buttonsLayout = QVBoxLayout()
-        buttonsLayout.setStretch(0, 1)
-        buttonsLayout.addWidget(self.tableWidget)
-
-        self.windowLayout.addLayout(buttonsLayout)
-
-        self.setGeometry(self.left, self.top,
-                         140 + self.BtnW*100,
-                         175 if self.BtnH*31 < 175 else 25 + self.BtnH*30)
+        self.endInitButtons()
 
     def initColorPicker(self):
         self.lColorPicker = QVBoxLayout()
@@ -191,7 +212,10 @@ class SoundBoard(QDialog):
 
     def play(self):
         pb = self.sender()
-        pbFile = pb.property('pbFile')
+        pbPos = pb.property('pbPos')
+        for b in self.data_buttons['buttons']:
+            if pbPos == b['position']:
+                pbFile = b['file']
         if (p.get_state() == vlc.State.Playing):
             p.stop()
             media = instance.media_new(soundRep + pbFile)
@@ -262,6 +286,12 @@ class SoundBoard(QDialog):
         pbValid.clicked.connect(self.addValid)
         self.tableWidget.setCellWidget(0, 5, pbValid)
 
+        pb = self.sender()
+        pbPos = pb.property('pbPos')
+        if pbPos is not None:
+            if str(pbPos)[:8] == 'nouveau,':
+                self.lePos.setText(pbPos[8:])
+
         def sortByPos(val):
             return val['position']
 
@@ -274,7 +304,7 @@ class SoundBoard(QDialog):
                 ligne, 3, QLabel(str(b['position'])))
             self.tableWidget.setCellWidget(ligne, 4, QLabel('Couleur'))
 
-        # 530 color picked width
+        # 530 color picker width
         self.setGeometry(self.left, self.top, 690+530, 300)
 
     def addValid(self):
@@ -326,31 +356,127 @@ class SoundBoard(QDialog):
                     self.lePos.setStyleSheet(
                         "color: rgb(255,0,0); font-weight: bold;")
                 else:
-                    # si position déjà prise
-                    if int(gPos) in self.positions:
-                        self.lePos.setText(
-                            f"{str(gPos)} déjà prise")
-                        self.lePos.setStyleSheet(
-                            "color: rgb(255,0,0); font-weight: bold;")
-                    else:
-                        dictToAppend = {
-                            "name": gName,
-                            "file": gFile,
+                    dictToAppend = {
+                        "name": gName,
+                        "file": gFile,
                             "position": int(gPos),
                             "r": self.colorSelected.red(),
                             "g": self.colorSelected.green(),
                             "b": self.colorSelected.blue()
-                        }
+                    }
+                    # si c'est une modification
+                    if self.pbPosToModify != -1:
+                        for b in self.data_buttons['buttons']:
+                            if b['position'] == self.pbPosToModify:
+                                self.data_buttons['buttons'].remove(b)
                         self.data_buttons['buttons'].append(dictToAppend)
                         with open('buttons.json', 'w', encoding='utf-8') as outfile:
                             json.dump(self.data_buttons, outfile, indent=4)
                         self.initButtons()
+                    else:
+                        # si position déjà prise
+                        if int(gPos) in self.positions:
+                            self.lePos.setText(
+                                f"{str(gPos)} déjà prise")
+                            self.lePos.setStyleSheet(
+                                "color: rgb(255,0,0); font-weight: bold;")
+                        else:
+                            self.data_buttons['buttons'].append(dictToAppend)
+                            with open('buttons.json', 'w', encoding='utf-8') as outfile:
+                                json.dump(self.data_buttons, outfile, indent=4)
+                            self.initButtons()
 
     def delete(self):
-        self.initButtons()
+        self.startInitButtons()
 
-    def edit(self):
-        self.initButtons()
+        # positionnement des boutons en fonction des positions du json
+        for ligne in range(self.BtnH):
+            for colonne in range(self.BtnW):
+                if (ligne*self.BtnW)+(colonne+1) in self.positions:
+                    for b in self.data_buttons['buttons']:
+                        if b['position'] == (ligne*self.BtnW)+(colonne+1):
+                            pb = QPushButton(b['name'][:9])
+                            pb.setProperty('pbPos', b['position'])
+                            pb.setIcon(self.iMinus)
+                            # si fond clair, font noire, si sombre, font blanche
+                            if (b['r']*0.299 + b['g']*0.587 + b['b']*0.114) > 186:
+                                pb.setStyleSheet(
+                                    f"background-color: rgb({b['r']},{b['g']},{b['b']}); color: #000000;")
+                            else:
+                                pb.setStyleSheet(
+                                    f"background-color: rgb({b['r']},{b['g']},{b['b']}); color: #ffffff;")
+                            self.tableWidget.setCellWidget(
+                                ligne, colonne, pb)
+                            pb.clicked.connect(self.deleteTw)
+                else:
+                    pb = QPushButton('Nouveau')
+                    calcPos = self.BtnW*ligne + colonne + 1
+                    pb.setProperty('pbPos', f"nouveau,{calcPos}")
+                    pb.clicked.connect(self.add)
+                    self.tableWidget.setCellWidget(
+                        ligne, colonne, pb)
+                colonne += 1
+            ligne += 1
+
+        self.endInitButtons()
+
+    def deleteTw(self):
+        pb = self.sender()
+        pbPos = pb.property('pbPos')
+        for b in self.data_buttons['buttons']:
+            if b['position'] == pbPos:
+                self.data_buttons['buttons'].remove(b)
+                with open('buttons.json', 'w', encoding='utf-8') as outfile:
+                    json.dump(self.data_buttons, outfile, indent=4)
+                self.delete()
+
+    def editBtn(self):
+        self.startInitButtons()
+
+        # positionnement des boutons en fonction des positions du json
+        for ligne in range(self.BtnH):
+            for colonne in range(self.BtnW):
+                if (ligne*self.BtnW)+(colonne+1) in self.positions:
+                    for b in self.data_buttons['buttons']:
+                        if b['position'] == (ligne*self.BtnW)+(colonne+1):
+                            pb = QPushButton(b['name'][:9])
+                            pb.setProperty('pbPos', b['position'])
+                            pb.setIcon(self.iEdit)
+                            # si fond clair, font noire, si sombre, font blanche
+                            if (b['r']*0.299 + b['g']*0.587 + b['b']*0.114) > 186:
+                                pb.setStyleSheet(
+                                    f"background-color: rgb({b['r']},{b['g']},{b['b']}); color: #000000;")
+                            else:
+                                pb.setStyleSheet(
+                                    f"background-color: rgb({b['r']},{b['g']},{b['b']}); color: #ffffff;")
+                            self.tableWidget.setCellWidget(
+                                ligne, colonne, pb)
+                            pb.clicked.connect(self.editTw)
+                else:
+                    pb = QPushButton('Nouveau')
+                    pb.setIcon(self.iEdit)
+                    calcPos = self.BtnW*ligne + colonne + 1
+                    pb.setProperty('pbPos', f"nouveau,{calcPos}")
+                    pb.clicked.connect(self.add)
+                    self.tableWidget.setCellWidget(
+                        ligne, colonne, pb)
+                colonne += 1
+            ligne += 1
+
+        self.endInitButtons()
+
+    def editTw(self):
+        pb = self.sender()
+        pbPos = pb.property('pbPos')
+        self.pbPosToModify = pbPos
+        self.add()
+        for b in self.data_buttons['buttons']:
+            if b['position'] == pbPos:
+                self.leName.setText(b['name'])
+                self.leFile.setText(b['file'])
+                self.lePos.setText(str(b['position']))
+                self.cdColorPicker.setCurrentColor(
+                    QColor(b['r'], b['g'], b['b']))
 
     def settings(self):
         self.tableWidget.clear()

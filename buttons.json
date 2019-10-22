@@ -2,7 +2,7 @@
     "buttons": [
         {
             "name": "top",
-            "file": "imotep.mp3",
+            "file": "tada.wav",
             "position": 1,
             "r": 0,
             "g": 0,
@@ -10,8 +10,8 @@
         },
         {
             "name": "ajout",
-            "file": "troupa.mp3",
-            "position": 2,
+            "file": "tada.wav",
+            "position": 3,
             "r": 159,
             "g": 255,
             "b": 117
@@ -26,11 +26,19 @@
         },
         {
             "name": "pos9",
-            "file": "tanasso.mp3",
+            "file": "tada.wav",
             "position": 9,
             "r": 14,
             "g": 38,
             "b": 255
+        },
+        {
+            "name": "last",
+            "file": "tada.wav",
+            "position": 14,
+            "r": 255,
+            "g": 216,
+            "b": 56
         },
         {
             "name": "button1",
@@ -49,6 +57,14 @@
             "b": 0
         },
         {
+            "name": "OOOOOOOOOOA",
+            "file": "tada.wav",
+            "position": 23,
+            "r": 88,
+            "g": 26,
+            "b": 150
+        },
+        {
             "name": "button2",
             "file": "tada.wav",
             "position": 30,
@@ -59,30 +75,14 @@
         {
             "name": "button5",
             "file": "tada.wav",
-            "position": 42,
+            "position": 32,
             "r": 163,
             "g": 240,
             "b": 163
         },
         {
-            "name": "OOOOOOOOOOA",
-            "file": "tada.wav",
-            "position": 46,
-            "r": 88,
-            "g": 26,
-            "b": 150
-        },
-        {
-            "name": "button3",
-            "file": "tada.wav",
-            "position": 50,
-            "r": 0,
-            "g": 0,
-            "b": 0
-        },
-        {
             "name": "truc",
-            "file": "sirop.mp3",
+            "file": "tada.wav",
             "position": 34,
             "r": 255,
             "g": 151,
@@ -91,6 +91,6 @@
     ],
     "buttons_grid": {
         "height": 9,
-        "width": 6
+        "width": 4
     }
 }
